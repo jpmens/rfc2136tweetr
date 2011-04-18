@@ -1,0 +1,58 @@
+*** dlz_example.c.orig	2011-04-18 12:02:24.000000000 +0200
+--- dlz_example.c	2011-04-18 12:21:04.000000000 +0200
+***************
+*** 30,35 ****
+--- 30,40 ----
+  
+  #include "dlz_minimal.h"
+  
++ #include <sys/socket.h>
++ #include <netinet/in.h>
++ 
++ #define SERVER "127.0.0.1"
++ #define PORT	43278
+  
+  /* for this simple example, use fixed sized strings */
+  struct record {
+***************
+*** 60,65 ****
+--- 65,89 ----
+  	isc_result_t (*writeable_zone)(dns_view_t *view, const char *zone_name);
+  };
+  
++ 
++ void udptweetr(char *status)
++ {
++ 	int sockfd, n;
++ 	struct sockaddr_in servaddr,cliaddr;
++ 
++ 	sockfd = socket(AF_INET,SOCK_DGRAM,0);
++ 
++ 	bzero(&servaddr,sizeof(servaddr));
++ 	servaddr.sin_family = AF_INET;
++ 	servaddr.sin_addr.s_addr = inet_addr(SERVER);
++ 	servaddr.sin_port = htons(PORT);
++ 
++ 	n = sendto(sockfd, status, strlen(status), 0,
++ 		(struct sockaddr *)&servaddr,sizeof(servaddr));
++ 
++ 	close(sockfd);
++ }
++ 
+  static bool single_valued(const char *type)
+  {
+  	const char *single[] = { "soa", "cname", NULL };
+***************
+*** 345,350 ****
+--- 369,379 ----
+  					 state->adds[i].type, 
+  					 state->adds[i].ttl, 
+  					 state->adds[i].data);
++ 
++ 				if ((strcmp(state->adds[i].name, "status.example.nil") == 0) &&
++ 					(strcmp(state->adds[i].type, "TXT") == 0)) {
++ 					udptweetr(state->adds[i].data);
++ 				}
+  			}
+  		}
+  		for (i=0; i<MAX_RECORDS; i++) {
